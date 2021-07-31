@@ -201,3 +201,38 @@ func AtualizarUsuario(w http.ResponseWriter, r *http.Request) {
 	//é comum nao retornar nada em um update
 	w.WriteHeader(http.StatusNoContent)
 }
+
+//delete
+func DeleteUsuario(w http.ResponseWriter, r *http.Request) {
+	//ler parametro
+	parametros := mux.Vars(r)
+	//obter e converter id
+	ID, err := strconv.ParseUint(parametros["id"], 10, 32)
+	if err != nil {
+		w.Write([]byte("Falha ao converter id, verifique id passado como parametro"))
+		return
+	}
+	//abrindo conn
+	db, err := banco.Conectar()
+	if err != nil {
+		w.Write([]byte("Falha ao conectar com o banco"))
+		return
+	}
+	//fechando conn
+	defer db.Close()
+
+	//preparando statement
+	statement, err := db.Prepare("DELETE FROM usuarios WHERE id = ?")
+	if err != nil {
+		w.Write([]byte("Falha ao criar statement/delete"))
+		return
+	}
+	defer statement.Close()
+
+	//executando delete
+	if _, err := statement.Exec(ID); err != nil {
+		w.Write([]byte("Falha ao deletar usuario"))
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
