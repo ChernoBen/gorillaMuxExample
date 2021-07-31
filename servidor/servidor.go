@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
+
+	"github.com/gorilla/mux"
 )
 
 // requisição com letra minuscula para nao ser utilizado fora do pacote
@@ -102,10 +105,48 @@ func BuscarUsuarios(w http.ResponseWriter, r *http.Request) {
 	//tranformar slice de struct em json
 	if err := json.NewEncoder(w).Encode(usuarios); err != nil {
 		w.Write([]byte("Erro ao converter resposta em json"))
+		return
 	}
 }
 
 //buscar usuario especifico
 func BuscaUsuario(w http.ResponseWriter, r *http.Request) {
+	//ler parametro vindo da rota
+	parametros := mux.Vars(r) //passar a r(request como parametro em vars())
+	//obter paremetro id da rota e converter para inteiro
+	ID, err := strconv.ParseInt(parametros["id"], 10, 32) // param["id"] <- string a ser convertida / 10 <- base / 32 <-bits id será um tipo int32
+	if err != nil {
+		w.Write([]byte("Erro ao converter id em inteiro, verifique o id passado!"))
+	}
+	// abrir conn
+	db, err := banco.Conectar()
+	if err != nil {
+		w.Write([]byte("falha ao conectar com banco de dados"))
+		return
+	}
+	//fechado conn
+	defer db.Close()
+
+	//criando select
+	linha, err := db.Query("SELECT * FROM usuarios WHERE id = ?", ID)
+	if err != nil {
+		w.Write([]byte("Falha ao buscar usuario!"))
+		return
+	}
+	//fechando conn
+	defer linha.Close()
+
+	var usuario usuario
+	if linha.Next() {
+		//se der erro em algum dos campor id,nome ou email faça
+		if err := linha.Scan(&usuario.ID, &usuario.Nome, &usuario.Email); err != nil {
+			w.Write([]byte("Erro ao processar/escanear dados do usuário"))
+			return
+		}
+	}
+	if err := json.NewEncoder(w).Encode(usuario); err != nil {
+		w.Write([]byte("Erro ao converter dados do usuário"))
+		return
+	}
 
 }
