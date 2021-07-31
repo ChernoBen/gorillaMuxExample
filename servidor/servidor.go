@@ -114,7 +114,7 @@ func BuscaUsuario(w http.ResponseWriter, r *http.Request) {
 	//ler parametro vindo da rota
 	parametros := mux.Vars(r) //passar a r(request como parametro em vars())
 	//obter paremetro id da rota e converter para inteiro
-	ID, err := strconv.ParseInt(parametros["id"], 10, 32) // param["id"] <- string a ser convertida / 10 <- base / 32 <-bits id será um tipo int32
+	ID, err := strconv.ParseUint(parametros["id"], 10, 32) // param["id"] <- string a ser convertida / 10 <- base / 32 <-bits id será um tipo int32
 	if err != nil {
 		w.Write([]byte("Erro ao converter id em inteiro, verifique o id passado!"))
 	}
@@ -149,4 +149,55 @@ func BuscaUsuario(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+}
+
+//atualizar dados de um usuario existente
+func AtualizarUsuario(w http.ResponseWriter, r *http.Request) {
+	//obter parametros
+	parametros := mux.Vars(r)
+	//obter e converter id
+	ID, err := strconv.ParseUint(parametros["id"], 10, 32)
+	if err != nil {
+		w.Write([]byte("Falha ao converter id para inteiro, verifique id passado."))
+		return
+	}
+
+	//ler o body da requisição
+	corpo, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		w.Write([]byte("Falha ao ler o corpo da requisição"))
+		return
+	}
+	var usuario usuario
+	//converter corpo p/ struct
+	if err := json.Unmarshal(corpo, &usuario); err != nil {
+		w.Write([]byte("Falha ao converter corpo p/ struct"))
+		return
+	}
+
+	//abir conn apos processamento da entrada
+	db, err := banco.Conectar()
+	if err != nil {
+		w.Write([]byte("falha ao conectar com banco de dados"))
+		return
+	}
+	//fechado conn
+	defer db.Close()
+	//executar statement para operações diferentes de consultas
+	statement, err := db.Prepare("UPDATE usuarios SET nome = ?, email = ? WHERE id = ?")
+	if err != nil {
+		w.Write([]byte("Erro ao criar statement"))
+		return
+	}
+	//fechando statement
+	defer statement.Close()
+
+	//executando statement
+	if _, err := statement.Exec(usuario.Email, usuario.Nome, ID); err != nil {
+		w.Write([]byte("Falha ao executar statement/update usuario"))
+		return
+	}
+
+	//é comum nao retornar nada em um update
+	w.WriteHeader(http.StatusNoContent)
 }

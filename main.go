@@ -18,6 +18,7 @@ func main() {
 	router.HandleFunc("/usuarios", servidor.CriarUsuario).Methods(http.MethodPost)
 	router.HandleFunc("/usuarios", servidor.BuscarUsuarios).Methods(http.MethodGet)
 	router.HandleFunc("/usuarios/{id}", servidor.BuscaUsuario).Methods("GET")
+	router.HandleFunc("/usuarios/{id}", servidor.AtualizarUsuario).Methods("PUT")
 	// utilizar pacote hhtp para subir o servidor junto com o router
 
 	fmt.Println("Escutando porta 5000")
